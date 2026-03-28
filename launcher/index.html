@@ -1,0 +1,384 @@
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0
+    }
+
+    .wrap {
+        width: 360px;
+        height: 360px;
+        overflow: hidden;
+        position: relative
+    }
+
+    .track {
+        position: absolute;
+        top: 0;
+        left: 0;
+        will-change: transform;
+        transition: transform .35s cubic-bezier(.25, .46, .45, .94)
+    }
+
+    .slide {
+        position: absolute;
+        width: 360px;
+        height: 360px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        user-select: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none
+    }
+
+    .slide::-webkit-scrollbar {
+        display: none
+    }
+
+    .slide-icon {
+        font-size: 52px;
+        line-height: 1
+    }
+
+    .slide-title {
+        font-size: 20px;
+        font-weight: 500;
+        color: var(--color-text-primary)
+    }
+
+    .slide-sub {
+        font-size: 13px;
+        color: var(--color-text-secondary)
+    }
+
+    .pos {
+        position: absolute;
+        top: 12px;
+        right: 14px;
+        font-size: 12px;
+        color: var(--color-text-secondary)
+    }
+
+
+    #page-apps, #page-hidden {
+        background: #000
+    }
+
+    .page-label {
+        font-family: -apple-system, 'Helvetica Neue', sans-serif;
+        font-size: 16px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: rgba(255,255,255,.3);
+        text-align: center;
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center
+    }
+
+    .app-cell.hiding {
+        opacity: .3
+    }
+
+    .app-grid {
+        display: grid;
+        gap: 6px;
+        padding: 12px;
+        width: 360px;
+        box-sizing: border-box
+    }
+
+    .app-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 14px;
+        cursor: pointer;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .app-cell:active {
+        background: rgba(255,255,255,.08)
+    }
+
+    .app-cell img {
+        width: var(--icon-size);
+        height: var(--icon-size);
+        object-fit: contain;
+        border-radius: 22%
+    }
+
+    .app-cell span {
+        font-family: -apple-system, 'Helvetica Neue', sans-serif;
+        font-size: var(--label-size);
+        font-weight: 400;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+        color: rgba(255,255,255,.85)
+    }
+
+
+    html {
+        background: #000
+    }
+
+    body {
+        transition: opacity .15s
+    }
+    
+    #page-js {
+        background: #000;
+        color: #fff;
+        font-family: -apple-system, 'Helvetica Neue', sans-serif;
+        gap: 0;
+        justify-content: center;
+        align-items: center
+    }
+
+    #page-js .js-time {
+        font-size: 5.5em;
+        font-weight: 200;
+        letter-spacing: -2px;
+        line-height: 1
+    }
+
+    #page-js .js-time .colon {
+        opacity: .4;
+        margin: 0 2px
+    }
+
+    #page-js .js-date {
+        font-size: 0.95em;
+        font-weight: 400;
+        opacity: .5;
+        margin-top: 16px;
+        text-transform: uppercase;
+        letter-spacing: 2px
+    }
+</style>
+
+<div class="wrap" id="wrap">
+    <div class="track" id="track">
+        <div id="page-js" class="slide" data-col="0" data-row="0">
+            <div class="js-time" id="page-js-time"></div>
+            <div class="js-date" id="page-js-date"></div>
+        </div>
+        <div id="page-apps" class="slide" data-col="1" data-row="0" data-grid="3x3">
+        </div>
+        <div id="page-hidden" class="slide" data-col="2" data-row="0" data-grid="3x3">
+        </div>
+    </div>
+</div>
+
+<script>
+    window.addEventListener("dblclick", () => {
+        document.body.style.opacity = '0';
+        setTimeout(() => window.location.reload(), 150);
+    })
+
+    const pageTime = document.querySelector("#page-js-time");
+    const pageDate = document.querySelector("#page-js-date");
+
+    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    function tickClock() {
+        const d = new Date();
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        pageTime.innerHTML = `${h}<span class="colon">:</span>${m}`;
+        pageDate.textContent = `${DAYS[d.getDay()]}  ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    const W = 360, H = 360;
+    const track = document.getElementById('track');
+    const wrap = document.getElementById('wrap');
+
+    const slides = track.querySelectorAll('.slide');
+    const grid = new Set();
+    let maxCol = 0, maxRow = 0;
+    slides.forEach(s => {
+        const c = parseInt(s.dataset.col), r = parseInt(s.dataset.row);
+        s.style.left = c * W + 'px';
+        s.style.top = r * H + 'px';
+        grid.add(c + ',' + r);
+        if (c > maxCol) maxCol = c;
+        if (r > maxRow) maxRow = r;
+    });
+
+    function hasNeighbor(dir) {
+        if (dir === 'left') return grid.has((cx - 1) + ',' + cy);
+        if (dir === 'right') return grid.has((cx + 1) + ',' + cy);
+        if (dir === 'up') return grid.has(cx + ',' + (cy - 1));
+        if (dir === 'down') return grid.has(cx + ',' + (cy + 1));
+    }
+
+    const COLS = maxCol + 1, ROWS = maxRow + 1;
+    let cx = 0, cy = 0;
+
+    track.style.width = (COLS * W) + 'px';
+    track.style.height = (ROWS * H) + 'px';
+
+    function go(x, y) {
+        cx = Math.max(0, Math.min(COLS - 1, x));
+        cy = Math.max(0, Math.min(ROWS - 1, y));
+        track.style.transition = 'transform .35s cubic-bezier(.25,.46,.45,.94)';
+        track.style.transform = `translate(${-cx * W}px,${-cy * H}px)`;
+    }
+
+    let startX = 0, startY = 0, dx = 0, dy = 0, axis = null;
+    const LOCK_THRESHOLD = 8;
+
+    function onStart(x, y) { startX = x; startY = y; dx = 0; dy = 0; axis = null; track.style.transition = 'none'; }
+    function onMove(x, y) {
+        const rawDx = x - startX, rawDy = y - startY;
+        if (!axis && (Math.abs(rawDx) > LOCK_THRESHOLD || Math.abs(rawDy) > LOCK_THRESHOLD)) {
+            const wantX = Math.abs(rawDx) >= Math.abs(rawDy);
+            if (wantX) {
+                const canPage = (rawDx < 0 && hasNeighbor('right')) || (rawDx > 0 && hasNeighbor('left'));
+                axis = canPage ? 'x' : 'native';
+            } else {
+                const canPage = (rawDy < 0 && hasNeighbor('down')) || (rawDy > 0 && hasNeighbor('up'));
+                axis = canPage ? 'y' : 'native';
+            }
+        }
+        if (axis === 'native') return;
+        if (axis === 'x') { dx = rawDx; dy = 0; }
+        else if (axis === 'y') { dx = 0; dy = rawDy; }
+        track.style.transform = `translate(${-cx * W + dx}px,${-cy * H + dy}px)`;
+    }
+    function onEnd() {
+        if (axis === 'x') { if (dx < -50) go(cx + 1, cy); else if (dx > 50) go(cx - 1, cy); else go(cx, cy); }
+        else if (axis === 'y') { if (dy < -50) go(cx, cy + 1); else if (dy > 50) go(cx, cy - 1); else go(cx, cy); }
+        else if (axis !== 'native') go(cx, cy);
+    }
+
+    wrap.addEventListener('touchstart', e => { onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    wrap.addEventListener('touchmove', e => { onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    wrap.addEventListener('touchend', onEnd);
+
+    wrap.addEventListener('mousedown', e => { onStart(e.clientX, e.clientY); wrap.addEventListener('mousemove', mm); wrap.addEventListener('mouseup', mu); });
+    function mm(e) { onMove(e.clientX, e.clientY); }
+    function mu() { onEnd(); wrap.removeEventListener('mousemove', mm); wrap.removeEventListener('mouseup', mu); }
+
+
+
+    const pageApps = document.querySelector("#page-apps");
+    const pageHidden = document.querySelector("#page-hidden");
+
+    // let dummy = [
+    //     { name: "Test1", package: "com.dummy.Test1" },
+    //     { name: "Test2", package: "com.dummy.Test2" }
+    // ];
+    // let apps = dummy;
+
+    let allApps = JSON.parse(Android.getApps());
+    allApps.sort((a, b) => a.name.localeCompare(b.name));
+
+    let hiddenSet = new Set(JSON.parse(localStorage.getItem('hiddenApps') || '[]'));
+
+    function saveHidden() {
+        localStorage.setItem('hiddenApps', JSON.stringify([...hiddenSet]));
+    }
+
+    function buildGrid(page, appList, isHiddenPage) {
+        const gridAttr = page.dataset.grid || '3x3';
+        const [cols, rows] = gridAttr.split('x').map(Number);
+        const PAD = 12, GAP = 6;
+        const cellW = Math.floor((W - PAD * 2 - GAP * (cols - 1)) / cols);
+        const cellH = Math.floor((H - PAD * 2 - GAP * (rows - 1)) / rows);
+        const iconSz = Math.floor(Math.min(cellW, cellH) * 0.55);
+        const labelSz = Math.max(8, Math.floor(Math.min(cellW, cellH) * 0.12));
+
+        page.innerHTML = '';
+        page.style.alignItems = 'start';
+        page.style.justifyContent = 'start';
+
+        const g = document.createElement('div');
+        g.className = 'app-grid';
+        g.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
+        g.style.gridAutoRows = `${cellH}px`;
+        g.style.setProperty('--icon-size', iconSz + 'px');
+        g.style.setProperty('--label-size', labelSz + 'px');
+
+        if (isHiddenPage) {
+            const label = document.createElement('div');
+            label.className = 'page-label';
+            label.textContent = 'Hidden';
+            g.appendChild(label);
+        }
+
+        appList.forEach(app => {
+            const cell = document.createElement('div');
+            cell.className = 'app-cell';
+
+            let pressTimer = null, sx = 0, sy = 0, moved = false;
+            function onCellTouchStart(e) {
+                const t = e.touches[0];
+                sx = t.clientX; sy = t.clientY;
+                moved = false;
+                pressTimer = setTimeout(() => { pressTimer = 'fired'; toggleHide(app.package); }, 500);
+            }
+            function onCellTouchMove(e) {
+                const t = e.touches[0];
+                if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) {
+                    moved = true;
+                    if (pressTimer !== 'fired') clearTimeout(pressTimer);
+                }
+            }
+            function onCellTouchEnd(e) {
+                if (pressTimer === 'fired') return;
+                clearTimeout(pressTimer);
+                if (!moved) {
+                    e.preventDefault();
+                    Android.launchApp(app.package);
+                }
+            }
+            cell.addEventListener('touchstart', onCellTouchStart, { passive: true });
+            cell.addEventListener('touchmove', onCellTouchMove, { passive: true });
+            cell.addEventListener('touchend', onCellTouchEnd);
+
+            const img = document.createElement('img');
+            img.src = app.icon;
+            const name = document.createElement('span');
+            name.textContent = app.name;
+            cell.appendChild(img);
+            cell.appendChild(name);
+            g.appendChild(cell);
+        });
+
+        page.appendChild(g);
+    }
+
+    function toggleHide(pkg) {
+        if (hiddenSet.has(pkg)) hiddenSet.delete(pkg);
+        else hiddenSet.add(pkg);
+        saveHidden();
+        renderApps();
+    }
+
+    function renderApps() {
+        const visible = allApps.filter(a => !hiddenSet.has(a.package));
+        const hidden = allApps.filter(a => hiddenSet.has(a.package));
+        buildGrid(pageApps, visible, false);
+        buildGrid(pageHidden, hidden, true);
+    }
+
+    renderApps();
+</script>
