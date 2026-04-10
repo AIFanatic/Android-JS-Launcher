@@ -1,4 +1,9 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
+    html, body {
+        margin: 0;
+    }
+
     * {
         box-sizing: border-box;
         margin: 0;
@@ -6,8 +11,8 @@
     }
 
     .wrap {
-        width: 360px;
-        height: 360px;
+        width: 100vw;
+        height: 100vh;
         overflow: hidden;
         position: relative
     }
@@ -22,8 +27,8 @@
 
     .slide {
         position: absolute;
-        width: 360px;
-        height: 360px;
+        width: 100vw;
+        height: 100vh;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -91,7 +96,7 @@
         display: grid;
         gap: 6px;
         padding: 12px;
-        width: 360px;
+        width: 100vw;
         box-sizing: border-box
     }
 
@@ -177,10 +182,8 @@
             <div class="js-time" id="page-js-time"></div>
             <div class="js-date" id="page-js-date"></div>
         </div>
-        <div id="page-apps" class="slide" data-col="1" data-row="0" data-grid="3x3">
-        </div>
-        <div id="page-hidden" class="slide" data-col="2" data-row="0" data-grid="3x3">
-        </div>
+        <div id="page-apps" class="slide" data-col="0" data-row="1" data-grid="3x3"></div>
+        <div id="page-hidden" class="slide" data-col="1" data-row="1" data-grid="3x3"></div>
     </div>
 </div>
 
@@ -206,7 +209,7 @@
     tickClock();
     setInterval(tickClock, 1000);
 
-    const W = 360, H = 360;
+    const W = window.innerWidth, H = window.innerHeight;
     const track = document.getElementById('track');
     const wrap = document.getElementById('wrap');
 
@@ -245,6 +248,13 @@
     let startX = 0, startY = 0, dx = 0, dy = 0, axis = null;
     const LOCK_THRESHOLD = 8;
 
+    function currentSlide() {
+        return track.querySelector(`.slide[data-col="${cx}"][data-row="${cy}"]`);
+    }
+
+    function atScrollTop(el) { return el.scrollTop <= 1; }
+    function atScrollBottom(el) { return el.scrollTop + el.clientHeight >= el.scrollHeight - 1; }
+
     function onStart(x, y) { startX = x; startY = y; dx = 0; dy = 0; axis = null; track.style.transition = 'none'; }
     function onMove(x, y) {
         const rawDx = x - startX, rawDy = y - startY;
@@ -254,7 +264,11 @@
                 const canPage = (rawDx < 0 && hasNeighbor('right')) || (rawDx > 0 && hasNeighbor('left'));
                 axis = canPage ? 'x' : 'native';
             } else {
-                const canPage = (rawDy < 0 && hasNeighbor('down')) || (rawDy > 0 && hasNeighbor('up'));
+                const sl = currentSlide();
+                const swipingUp = rawDy < 0;
+                const swipingDown = rawDy > 0;
+                const canPage = (swipingUp && hasNeighbor('down') && atScrollBottom(sl))
+                             || (swipingDown && hasNeighbor('up') && atScrollTop(sl));
                 axis = canPage ? 'y' : 'native';
             }
         }
