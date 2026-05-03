@@ -39,11 +39,19 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon
 
+      - name: Prepare release APK
+        run: |
+          mkdir -p release
+          apk_path="$(find build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$apk_path"
+          cp "$apk_path" release/Watch-Launcher-debug.apk
+          ls -l release/Watch-Launcher-debug.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Watch-Launcher-debug
-          path: build/outputs/apk/debug/Watch-Launcher-debug.apk
+          path: release/Watch-Launcher-debug.apk
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -52,5 +60,5 @@ jobs:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           body: Debug APK built from commit ${{ github.sha }}.
-          files: build/outputs/apk/debug/Watch-Launcher-debug.apk
+          files: release/Watch-Launcher-debug.apk
           fail_on_unmatched_files: true
